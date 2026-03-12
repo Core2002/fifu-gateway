@@ -215,7 +215,7 @@ func hRegisterStart(ctx *gin.Context) {
 		return
 	}
 
-	// 创建临时用户用于获取 ID（不保存到数据库）
+	// 保存会话时使用临时用户对象，包含临时 ID
 	user := User{
 		Username: req.Username,
 	}
@@ -229,9 +229,11 @@ func hRegisterStart(ctx *gin.Context) {
 		return
 	}
 
-	// 保存会话
+	// 保存会话和用户信息
 	sessionMutex.Lock()
 	sessions[req.Username] = session
+	// 同时保存用户对象，以便在 finish 阶段使用相同的 ID
+	userTxs[req.Username] = db.Table("users").Create(&user)
 	sessionMutex.Unlock()
 
 	response := convertCredentialCreation(creation, user)
@@ -265,9 +267,12 @@ func hRegisterFinish(ctx *gin.Context) {
 	sessionMutex.Lock()
 	session, exists := sessions[req.Username]
 	delete(sessions, req.Username)
+	// 获取并删除临时用户事务
+	userTx := userTxs[req.Username]
+	delete(userTxs, req.Username)
 	sessionMutex.Unlock()
 
-	if !exists {
+	if !exists || userTx == nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "注册会话已过期"})
 		return
 	}
@@ -281,13 +286,13 @@ func hRegisterFinish(ctx *gin.Context) {
 		return
 	}
 
-	// 从会话中获取用户信息
+	// 从数据库中获取临时用户（包含相同的临时 ID）
 	var user User
-	user.Username = req.Username
-	// 使用临时 ID，WebAuthn 只需要 ID 字节，不验证是否存在于数据库
-	idBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(idBytes, 1) // 临时 ID
-	// 注意：这里不需要从数据库查询，因为用户还未创建
+	if err := userTx.First(&user, "username = ?", req.Username).Error; err != nil {
+		log.Printf("❌ 获取用户失败：%v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "获取用户信息失败"})
+		return
+	}
 
 	// 使用真实用户进行验证
 	cred, err := wa.CreateCredential(&user, *session, credentialParsed)
@@ -297,9 +302,9 @@ func hRegisterFinish(ctx *gin.Context) {
 		return
 	}
 
-	// 添加凭证到用户并保存到数据库（此时才真正创建用户）
+	// 添加凭证到用户并保存到数据库（更新现有记录而不是创建新记录）
 	user.AddCredential(*cred)
-	if err := db.Create(&user).Error; err != nil {
+	if err := db.Save(&user).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "保存用户失败：" + err.Error()})
 		return
 	}
