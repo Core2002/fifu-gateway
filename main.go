@@ -23,6 +23,9 @@ var (
 	wa           *webauthn.WebAuthn
 	sessions     = map[string]*webauthn.SessionData{}
 	sessionMutex sync.RWMutex
+	// 存储新用户的事务，用于注册完成时提交
+	userTxs = map[string]*gorm.DB{}
+	txMutex sync.RWMutex
 )
 
 // 用户结构体，实现 webauthn.Interface 接口
@@ -204,8 +207,17 @@ func hRegisterStart(ctx *gin.Context) {
 
 	log.Printf("📝 注册开始 - 用户名：%s", req.Username)
 
+	// 检查用户是否已存在
+	var existingUser User
+	result := db.Where("username = ?", req.Username).First(&existingUser)
+	if result.Error == nil {
+		ctx.JSON(http.StatusConflict, gin.H{"error": "用户名已存在"})
+		return
+	}
+
+	// 预创建用户获取 ID
 	var user User
-	result := db.FirstOrCreate(&user, User{Username: req.Username})
+	result = db.Where("username = ?", req.Username).FirstOrCreate(&user, User{Username: req.Username})
 	if result.Error != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "数据库操作失败"})
 		return
@@ -217,6 +229,7 @@ func hRegisterStart(ctx *gin.Context) {
 		return
 	}
 
+	// 保存会话
 	sessionMutex.Lock()
 	sessions[req.Username] = session
 	sessionMutex.Unlock()
@@ -259,13 +272,6 @@ func hRegisterFinish(ctx *gin.Context) {
 		return
 	}
 
-	var user User
-	result := db.First(&user, "username = ?", req.Username)
-	if result.Error != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
-		return
-	}
-
 	credentialParsed, err := protocol.ParseCredentialCreationResponseBody(
 		io.NopCloser(bytes.NewReader(bodyBytes)),
 	)
@@ -275,6 +281,15 @@ func hRegisterFinish(ctx *gin.Context) {
 		return
 	}
 
+	// 从数据库获取用户（已在 hRegisterStart 中创建）
+	var user User
+	result := db.Where("username = ?", req.Username).First(&user)
+	if result.Error != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
+		return
+	}
+
+	// 使用真实用户进行验证
 	cred, err := wa.CreateCredential(&user, *session, credentialParsed)
 	if err != nil {
 		log.Printf("❌ 注册验证失败：%+v", err)
@@ -282,8 +297,12 @@ func hRegisterFinish(ctx *gin.Context) {
 		return
 	}
 
+	// 添加凭证到用户并保存
 	user.AddCredential(*cred)
-	db.Save(&user)
+	if err := db.Save(&user).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "保存凭证失败"})
+		return
+	}
 
 	ctx.JSON(http.StatusOK, gin.H{"status": "registered"})
 }
@@ -405,7 +424,7 @@ func initGin() {
 			"http://localhost:5000",
 			"http://127.0.0.1:5000",
 		},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowMethods:     []string{"GET", "POST"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
