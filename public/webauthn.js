@@ -306,8 +306,18 @@ async function handleLogin() {
 // 3. 辅助功能
 function updateLoginStatus(username) {
     const statusDiv = document.getElementById('loginStatus');
-    statusDiv.innerHTML = `当前用户: <strong>${username}</strong> | <a href="#" onclick="handleLogout(); return false;" style="color: #2563eb; text-decoration: underline;">退出</a>`;
+    // 创建退出登录链接的 HTML，但不使用 inline onclick
+    statusDiv.innerHTML = `当前用户：<strong>${username}</strong> | <a href="#" id="logoutLink" style="color: #2563eb; text-decoration: underline;">退出</a>`;
     statusDiv.style.display = 'block';
+    
+    // 为退出链接添加事件监听器
+    const logoutLink = document.getElementById('logoutLink');
+    if (logoutLink) {
+        logoutLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleLogout();
+        });
+    }
 }
 
 function handleLogout() {

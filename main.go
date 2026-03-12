@@ -215,13 +215,13 @@ func hRegisterStart(ctx *gin.Context) {
 		return
 	}
 
-	// 预创建用户获取 ID
-	var user User
-	result = db.Where("username = ?", req.Username).FirstOrCreate(&user, User{Username: req.Username})
-	if result.Error != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "数据库操作失败"})
-		return
+	// 创建临时用户用于获取 ID（不保存到数据库）
+	user := User{
+		Username: req.Username,
 	}
+	// 手动设置一个临时 ID（仅用于注册挑战，实际 ID 在保存时自动生成）
+	tempID := uint(1)
+	user.ID = tempID
 
 	creation, session, err := wa.BeginRegistration(&user)
 	if err != nil {
@@ -281,13 +281,13 @@ func hRegisterFinish(ctx *gin.Context) {
 		return
 	}
 
-	// 从数据库获取用户（已在 hRegisterStart 中创建）
+	// 从会话中获取用户信息
 	var user User
-	result := db.Where("username = ?", req.Username).First(&user)
-	if result.Error != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
-		return
-	}
+	user.Username = req.Username
+	// 使用临时 ID，WebAuthn 只需要 ID 字节，不验证是否存在于数据库
+	idBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(idBytes, 1) // 临时 ID
+	// 注意：这里不需要从数据库查询，因为用户还未创建
 
 	// 使用真实用户进行验证
 	cred, err := wa.CreateCredential(&user, *session, credentialParsed)
@@ -297,10 +297,10 @@ func hRegisterFinish(ctx *gin.Context) {
 		return
 	}
 
-	// 添加凭证到用户并保存
+	// 添加凭证到用户并保存到数据库（此时才真正创建用户）
 	user.AddCredential(*cred)
-	if err := db.Save(&user).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "保存凭证失败"})
+	if err := db.Create(&user).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "保存用户失败：" + err.Error()})
 		return
 	}
 
