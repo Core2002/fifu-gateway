@@ -79,6 +79,19 @@ async function handleRegister() {
         return;
     }
 
+    // 动态检查平台认证器可用性（仅用于提供友好提示）
+    if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
+        try {
+            const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+            if (!available) {
+                console.warn('⚠️ 此设备可能没有可用的生物识别传感器（如指纹、面部识别）');
+                // 继续执行，因为用户可能使用外部安全密钥
+            }
+        } catch (e) {
+            console.warn('无法检查平台认证器可用性:', e);
+        }
+    }
+
     showMessage('正在请求注册挑战...', false);
 
     try {
@@ -307,8 +320,51 @@ function handleLogout() {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('页面加载完成，检查 WebAuthn 支持...');
     
-    if (!window.PublicKeyCredential) {
-        showMessage('⚠️ 您的浏览器不支持 WebAuthn。请使用 Chrome 67+、Edge 18+、Firefox 60+ 或 Safari 13+。', true);
+    // 更完善的 WebAuthn 支持检测
+    function checkWebAuthnSupport() {
+        // 1. 基础检查：PublicKeyCredential API 是否存在
+        if (!window.PublicKeyCredential) {
+            return {
+                supported: false,
+                reason: '浏览器不支持 WebAuthn API'
+            };
+        }
+        
+        // 2. 检查是否在安全上下文中 (HTTPS 或 localhost)
+        const isSecureContext = window.isSecureContext || 
+                                location.protocol === 'https:' || 
+                                location.hostname === 'localhost' || 
+                                location.hostname === '127.0.0.1';
+        
+        if (!isSecureContext) {
+            return {
+                supported: false,
+                reason: 'WebAuthn 需要 HTTPS 或 localhost 环境'
+            };
+        }
+        
+        // 3. 检查是否支持平台认证器（可选，用于提供更友好的提示）
+        let hasPlatformAuthenticator = true; // 默认为 true，避免误报
+        if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
+            // 这是一个异步检查，我们只做同步检测
+            hasPlatformAuthenticator = true; // 假设支持，实际使用时会动态检测
+        }
+        
+        console.log('✅ WebAuthn 支持检测通过');
+        console.log('   - PublicKeyCredential: 支持');
+        console.log('   - 安全上下文:', isSecureContext ? '是' : '否');
+        console.log('   - 平台认证器:', hasPlatformAuthenticator ? '可能支持' : '未知');
+        
+        return {
+            supported: true,
+            hasPlatformAuthenticator
+        };
+    }
+    
+    const webauthnCheck = checkWebAuthnSupport();
+    
+    if (!webauthnCheck.supported) {
+        showMessage(`⚠️ ${webauthnCheck.reason}。请使用最新版本的 Chrome、Safari、Edge 或 Firefox，并确保使用 HTTPS 或 localhost 访问。`, true);
         document.querySelectorAll('button').forEach(btn => btn.disabled = true);
         return;
     }
