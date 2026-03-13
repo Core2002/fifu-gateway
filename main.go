@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/base64"
-	"encoding/binary"
 	"encoding/json"
 	"io"
 	"log"
@@ -23,9 +22,6 @@ var (
 	wa           *webauthn.WebAuthn
 	sessions     = map[string]*webauthn.SessionData{}
 	sessionMutex sync.RWMutex
-	// 存储新用户的事务，用于注册完成时提交
-	userTxs = map[string]*gorm.DB{}
-	txMutex sync.RWMutex
 )
 
 // 用户结构体，实现 webauthn.Interface 接口
@@ -35,11 +31,9 @@ type User struct {
 	Credentials []webauthn.Credential `gorm:"serializer:json"`
 }
 
-// WebAuthnID 返回用户的 ID 字节数组
+// WebAuthnID 返回用户的 ID 字节数组（使用用户名的字节作为唯一标识）
 func (u *User) WebAuthnID() []byte {
-	idBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(idBytes, uint64(u.ID))
-	return idBytes
+	return []byte(u.Username)
 }
 
 // WebAuthnName 返回用户名
@@ -215,13 +209,10 @@ func hRegisterStart(ctx *gin.Context) {
 		return
 	}
 
-	// 保存会话时使用临时用户对象，包含临时 ID
+	// 使用用户名创建临时用户对象用于生成挑战
 	user := User{
 		Username: req.Username,
 	}
-	// 手动设置一个临时 ID（仅用于注册挑战，实际 ID 在保存时自动生成）
-	tempID := uint(1)
-	user.ID = tempID
 
 	creation, session, err := wa.BeginRegistration(&user)
 	if err != nil {
@@ -232,8 +223,6 @@ func hRegisterStart(ctx *gin.Context) {
 	// 保存会话和用户信息
 	sessionMutex.Lock()
 	sessions[req.Username] = session
-	// 同时保存用户对象，以便在 finish 阶段使用相同的 ID
-	userTxs[req.Username] = db.Table("users").Create(&user)
 	sessionMutex.Unlock()
 
 	response := convertCredentialCreation(creation, user)
@@ -267,14 +256,16 @@ func hRegisterFinish(ctx *gin.Context) {
 	sessionMutex.Lock()
 	session, exists := sessions[req.Username]
 	delete(sessions, req.Username)
-	// 获取并删除临时用户事务
-	userTx := userTxs[req.Username]
-	delete(userTxs, req.Username)
 	sessionMutex.Unlock()
 
-	if !exists || userTx == nil {
+	if !exists {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "注册会话已过期"})
 		return
+	}
+
+	// 使用用户名创建临时用户对象进行验证
+	tempUser := &User{
+		Username: req.Username,
 	}
 
 	credentialParsed, err := protocol.ParseCredentialCreationResponseBody(
@@ -286,25 +277,21 @@ func hRegisterFinish(ctx *gin.Context) {
 		return
 	}
 
-	// 从数据库中获取临时用户（包含相同的临时 ID）
-	var user User
-	if err := userTx.First(&user, "username = ?", req.Username).Error; err != nil {
-		log.Printf("❌ 获取用户失败：%v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "获取用户信息失败"})
-		return
-	}
-
-	// 使用真实用户进行验证
-	cred, err := wa.CreateCredential(&user, *session, credentialParsed)
+	// 使用临时用户进行验证
+	cred, err := wa.CreateCredential(tempUser, *session, credentialParsed)
 	if err != nil {
 		log.Printf("❌ 注册验证失败：%+v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "注册验证失败：" + err.Error()})
 		return
 	}
 
-	// 添加凭证到用户并保存到数据库（更新现有记录而不是创建新记录）
-	user.AddCredential(*cred)
-	if err := db.Save(&user).Error; err != nil {
+	// 验证通过后，创建真实用户并保存到数据库
+	user := User{
+		Username:    req.Username,
+		Credentials: []webauthn.Credential{*cred},
+	}
+	if err := db.Create(&user).Error; err != nil {
+		log.Printf("❌ 保存用户失败：%v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "保存用户失败：" + err.Error()})
 		return
 	}
