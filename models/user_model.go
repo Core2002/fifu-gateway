@@ -6,6 +6,7 @@ import "github.com/go-webauthn/webauthn/webauthn"
 type User struct {
 	ID          uint                  `gorm:"primarykey"`
 	Username    string                `gorm:"unique"`
+	Role        string                `gorm:"unique"`
 	Credentials []webauthn.Credential `gorm:"serializer:json"`
 }
 

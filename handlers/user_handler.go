@@ -8,14 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type UserHandler struct {
-	tokenMaker *utils.PasetoMaker
-}
-
-func NewUserHandler(tokenMaker *utils.PasetoMaker) *UserHandler {
-	return &UserHandler{tokenMaker}
-}
-
 func (h *UserHandler) GetProfile(ctx *gin.Context) {
 	payload, exists := ctx.Get(middleware.AuthorizationPayloadKey)
 	if !exists {

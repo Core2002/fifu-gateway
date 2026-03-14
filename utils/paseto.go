@@ -10,17 +10,12 @@ import (
 )
 
 type TokenPayload struct {
-	UserID    int64     `json:"user_id"`
+	UserID    uint      `json:"user_id"`
 	Username  string    `json:"username"`
 	Role      string    `json:"role"`
 	IssuedAt  time.Time `json:"iat"`
 	ExpiredAt time.Time `json:"exp"`
 }
-
-const (
-	VersionV2 = "v2"
-	VersionV4 = "v4"
-)
 
 type PasetoMaker struct {
 	passeto       *paseto.V2
@@ -66,7 +61,7 @@ func GenerateKeys() (ed25519.PublicKey, ed25519.PrivateKey, error) {
 	return ed25519.GenerateKey(nil)
 }
 
-func (maker *PasetoMaker) CreateToken(userID int64, username, role string, duration time.Duration) (string, error) {
+func (maker *PasetoMaker) CreateToken(userID uint, username, role string, duration time.Duration) (string, error) {
 	payload := TokenPayload{
 		UserID:    userID,
 		Username:  username,

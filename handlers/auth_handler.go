@@ -7,13 +7,16 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"fifu.fun/test/database"
 	"fifu.fun/test/models"
+	"fifu.fun/test/utils"
 	wa "fifu.fun/test/webauthn"
 	"github.com/gin-gonic/gin"
 )
 
+// 防止重放攻击
 var (
 	sessions     = map[string]*wa.SessionData{}
 	sessionMutex sync.RWMutex
@@ -176,7 +179,7 @@ func LoginStart(ctx *gin.Context) {
 }
 
 // LoginFinish 处理登录完成阶段，验证用户凭证并完成登录
-func LoginFinish(ctx *gin.Context) {
+func (h *UserHandler) LoginFinish(ctx *gin.Context) {
 	bodyBytes, err := io.ReadAll(ctx.Request.Body)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "读取请求体失败：" + err.Error()})
@@ -237,7 +240,36 @@ func LoginFinish(ctx *gin.Context) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"status": "login ok"})
+	// 生成 PASETO 令牌
+	accessToken, err := h.tokenMaker.CreateToken(
+		user.ID,
+		user.Username,
+		user.Role,
+		24*time.Hour,
+	)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create token"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"status": "login ok", "data": LoginResponse{
+		AccessToken: accessToken,
+		TokenType:   "Bearer",
+		ExpiresIn:   int(int64(24 * time.Hour.Seconds())),
+		User: UserResponse{
+			ID:       user.ID,
+			Username: user.Username,
+			Role:     user.Role,
+		},
+	}})
+}
+
+type UserHandler struct {
+	tokenMaker *utils.PasetoMaker
+}
+
+func NewUserHandler(tokenMaker *utils.PasetoMaker) *UserHandler {
+	return &UserHandler{tokenMaker}
 }
 
 type LoginResponse struct {
@@ -248,7 +280,7 @@ type LoginResponse struct {
 }
 
 type UserResponse struct {
-	ID       int64  `json:"id"`
+	ID       uint   `json:"id"`
 	Username string `json:"username"`
 	Role     string `json:"role"`
 }

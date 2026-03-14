@@ -35,12 +35,6 @@ func Init() {
 		ctx.JSON(http.StatusOK, gin.H{"message": "pong"})
 	})
 
-	// WebAuthn 路由
-	r.POST("/webauthn/register/start", handlers.RegisterStart)
-	r.POST("/webauthn/register/finish", handlers.RegisterFinish)
-	r.POST("/webauthn/login/start", handlers.LoginStart)
-	r.POST("/webauthn/login/finish", handlers.LoginFinish)
-
 	publicKey, privateKey, err := utils.GenerateKeys()
 	if err != nil {
 		log.Fatal("canot generate keys", err)
@@ -52,6 +46,13 @@ func Init() {
 
 	// 需要认证的路由
 	userHandler := handlers.NewUserHandler(tokenMaker)
+
+	// WebAuthn 路由
+	r.POST("/webauthn/register/start", handlers.RegisterStart)
+	r.POST("/webauthn/register/finish", handlers.RegisterFinish)
+	r.POST("/webauthn/login/start", handlers.LoginStart)
+	r.POST("/webauthn/login/finish", userHandler.LoginFinish)
+
 	auth := r.Group("/").Use(middleware.AuthMiddleware(tokenMaker))
 	{
 		auth.GET("/profile", userHandler.GetProfile)
