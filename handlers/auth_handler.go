@@ -239,3 +239,16 @@ func LoginFinish(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{"status": "login ok"})
 }
+
+type LoginResponse struct {
+	AccessToken string       `json:"access_token"`
+	TokenType   string       `json:"token_type"`
+	ExpiresIn   int          `json:"expires_in"`
+	User        UserResponse `json:"user"`
+}
+
+type UserResponse struct {
+	ID       int64  `json:"id"`
+	Username string `json:"username"`
+	Role     string `json:"role"`
+}

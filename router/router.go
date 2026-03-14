@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"fifu.fun/test/handlers"
+	"fifu.fun/test/middleware"
+	"fifu.fun/test/utils"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -38,6 +40,22 @@ func Init() {
 	r.POST("/webauthn/register/finish", handlers.RegisterFinish)
 	r.POST("/webauthn/login/start", handlers.LoginStart)
 	r.POST("/webauthn/login/finish", handlers.LoginFinish)
+
+	publicKey, privateKey, err := utils.GenerateKeys()
+	if err != nil {
+		log.Fatal("canot generate keys", err)
+	}
+	tokenMaker, err := utils.NewPasetoMakerAsymmetric(publicKey, privateKey)
+	if err != nil {
+		log.Fatal("canot create token maker:", err)
+	}
+
+	// 需要认证的路由
+	userHandler := handlers.NewUserHandler(tokenMaker)
+	auth := r.Group("/").Use(middleware.AuthMiddleware(tokenMaker))
+	{
+		auth.GET("/profile", userHandler.GetProfile)
+	}
 
 	r.Static("/app", "./public")
 

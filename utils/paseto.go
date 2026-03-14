@@ -45,7 +45,7 @@ func NewPasetoMaker(symmetricKey string) (*PasetoMaker, error) {
 }
 
 // NewPasetoMakerAsymmetric 创建非堆成加密模式的 Maker（v2.public）
-func NewPasetoMakerAsymmetric(privateKey ed25519.PrivateKey, publicKey ed25519.PublicKey) (*PasetoMaker, error) {
+func NewPasetoMakerAsymmetric(publicKey ed25519.PublicKey, privateKey ed25519.PrivateKey) (*PasetoMaker, error) {
 	if len(privateKey) != ed25519.PrivateKeySize {
 		return nil, fmt.Errorf("invalid key size: must be 32 bytes, got %d", len(privateKey))
 	}
