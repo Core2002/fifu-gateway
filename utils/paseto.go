@@ -90,10 +90,10 @@ func (maker *PasetoMaker) VerifyToken(token string) (*TokenPayload, error) {
 	var err error
 	if maker.useAsymmetric {
 		//使用公钥验证（v2.public）
-		err = maker.passeto.Verify(token, maker.publicKey, payloadBytes, nil)
+		err = maker.passeto.Verify(token, maker.publicKey, &payloadBytes, nil)
 	} else {
 		// 使用堆成密钥解密）—v2.local—
-		err = maker.passeto.Decrypt(token, maker.symmetricKey, payloadBytes, nil)
+		err = maker.passeto.Decrypt(token, maker.symmetricKey, &payloadBytes, nil)
 	}
 
 	if err != nil {

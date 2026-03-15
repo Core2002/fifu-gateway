@@ -6,6 +6,32 @@
 // 配置后端 API 基础地址
 const API_BASE_URL = 'http://127.0.0.1:5000';
 
+// Token 管理相关函数
+function saveToken(token) {
+    localStorage.setItem('access_token', token);
+}
+
+function getToken() {
+    return localStorage.getItem('access_token');
+}
+
+function removeToken() {
+    localStorage.removeItem('access_token');
+}
+
+function saveUserInfo(userInfo) {
+    localStorage.setItem('user_info', JSON.stringify(userInfo));
+}
+
+function getUserInfo() {
+    const info = localStorage.getItem('user_info');
+    return info ? JSON.parse(info) : null;
+}
+
+function removeUserInfo() {
+    localStorage.removeItem('user_info');
+}
+
 // 显示消息的工具函数
 function showMessage(message, isError = false) {
     const messageDiv = document.getElementById('message');
@@ -43,7 +69,7 @@ function bufferToBase64url(buffer) {
 }
 
 // 通用 API 调用函数
-async function callApi(endpoint, method = 'POST', data = null) {
+async function callApi(endpoint, method = 'POST', data = null, useAuth = false) {
     const url = `${API_BASE_URL}${endpoint}`;
     const options = {
         method: method,
@@ -51,6 +77,14 @@ async function callApi(endpoint, method = 'POST', data = null) {
             'Content-Type': 'application/json',
         }
     };
+
+    // 如果需要认证，添加 Authorization header
+    if (useAuth) {
+        const token = getToken();
+        if (token) {
+            options.headers['Authorization'] = `Bearer ${token}`;
+        }
+    }
 
     if (data) {
         options.body = JSON.stringify(data);
@@ -284,9 +318,15 @@ async function handleLogin() {
         const verificationResult = await callApi('/webauthn/login/finish', 'POST', finishData);
 
         if (verificationResult && verificationResult.status === 'login ok') {
-            showMessage(`✅ 登录成功！欢迎回来，${username}。`);
+            // 保存 token 和用户信息
+            const { access_token, user } = verificationResult.data;
+            saveToken(access_token);
+            saveUserInfo(user);
+            
+            showMessage(`✅ 登录成功！欢迎回来，${user.username}。`);
             document.getElementById('loginUsername').value = '';
-            updateLoginStatus(username);
+            updateLoginStatus(user.username);
+            checkAuthStatus(); // 检查认证状态并获取完整用户信息
         } else {
             throw new Error(verificationResult?.error || '服务器验证登录失败');
         }
@@ -318,12 +358,67 @@ function updateLoginStatus(username) {
             handleLogout();
         });
     }
+    
+    // 更新用户信息卡片
+    const userInfoDiv = document.getElementById('userInfo');
+    if (userInfoDiv) {
+        const user = getUserInfo();
+        if (user) {
+            userInfoDiv.innerHTML = `
+                <p><strong>ID:</strong> ${user.id}</p>
+                <p><strong>用户名:</strong> ${user.username}</p>
+                <p><strong>角色:</strong> ${user.role}</p>
+            `;
+        }
+    }
 }
 
 function handleLogout() {
+    removeToken();
+    removeUserInfo();
     const statusDiv = document.getElementById('loginStatus');
     if (statusDiv) statusDiv.style.display = 'none';
     showMessage('已退出登录。');
+    // 隐藏受保护的内容
+    hideProtectedContent();
+}
+
+// 检查认证状态
+async function checkAuthStatus() {
+    const token = getToken();
+    if (!token) {
+        hideProtectedContent();
+        return;
+    }
+    
+    try {
+        const result = await callApi('/profile', 'GET', null, true);
+        if (result && result.user) {
+            updateLoginStatus(result.user.username);
+            showProtectedContent();
+        } else {
+            removeToken();
+            removeUserInfo();
+            hideProtectedContent();
+        }
+    } catch (error) {
+        console.error('认证检查失败:', error);
+        removeToken();
+        removeUserInfo();
+        hideProtectedContent();
+    }
+}
+
+// 显示受保护的内容
+function showProtectedContent() {
+    const protectedElements = document.querySelectorAll('.protected-content');
+    protectedElements.forEach(el => el.style.display = 'block');
+}
+
+// 隐藏受保护的内容
+function hideProtectedContent() {
+    const protectedElements = document.querySelectorAll('.protected-content');
+    protectedElements.forEach(el => el.style.display = 'none');
 }
 
 // 4. 页面加载时检查浏览器支持
@@ -380,6 +475,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     console.log('✅ 浏览器支持 WebAuthn');
+    
+    // 页面加载时检查认证状态
+    checkAuthStatus();
 
     // 绑定事件监听器
     const registerBtn = document.getElementById('registerBtn');
