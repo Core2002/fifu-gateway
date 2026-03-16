@@ -4,7 +4,7 @@
 // ============================================
 
 // 配置后端 API 基础地址
-const API_BASE_URL = 'http://127.0.0.1:5000';
+const API_BASE_URL = 'http://localhost:5000';
 
 // Token 管理相关函数
 function saveToken(token) {

@@ -31,6 +31,8 @@ func Init() {
 		ctx.Redirect(302, "/app/")
 	})
 
+	r.Static("/app", "./public")
+
 	r.GET("/ping", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{"message": "pong"})
 	})
@@ -58,7 +60,14 @@ func Init() {
 		auth.GET("/profile", userHandler.GetProfile)
 	}
 
-	r.Static("/app", "./public")
+	admin := r.Group("/").
+		Use(middleware.AuthMiddleware(tokenMaker)).
+		Use(middleware.RoleMiddleware("admin"))
+	{
+		admin.GET("/admin", func(context *gin.Context) {
+			context.JSON(http.StatusOK, gin.H{"message": "admin"})
+		})
+	}
 
 	log.Println("🚀 服务器启动在 http://127.0.0.1:5000")
 	log.Println("📁 前端访问：http://127.0.0.1:5000/app/")
