@@ -1,8 +1,12 @@
 package router
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
+	"strings"
 
 	"fifu.fun/fifu-gateway/handlers"
 	"fifu.fun/fifu-gateway/middleware"
@@ -69,7 +73,30 @@ func Init() {
 		})
 	}
 
-	log.Println("🚀 服务器启动在 http://127.0.0.1:5000")
-	log.Println("📁 前端访问：http://127.0.0.1:5000/app/")
+	// 业务服务代理路由
+	targetURL, _ := url.Parse("http://localhost:5100")
+	proxy := httputil.NewSingleHostReverseProxy(targetURL)
+	api := r.Group("/api")
+	api.Use(middleware.AuthMiddleware(tokenMaker))
+	api.Any("/*path", func(ctx *gin.Context) {
+		// 从上下文获取用户信息并注入请求头
+		if payload, exists := ctx.Get("authorization_payload"); exists {
+			if p, ok := payload.(*utils.TokenPayload); ok {
+				ctx.Request.Header.Set("X-User-ID", fmt.Sprintf("%d", p.UserID))
+				ctx.Request.Header.Set("X-Username", p.Username)
+				ctx.Request.Header.Set("X-User-Role", p.Role)
+			}
+		}
+
+		// 修改请求路径
+		ctx.Request.URL.Path = strings.TrimPrefix(ctx.Request.URL.Path, "/api")
+		if ctx.Request.URL.Path == "" {
+			ctx.Request.URL.Path = "/"
+		}
+
+		proxy.ServeHTTP(ctx.Writer, ctx.Request)
+	})
+
+	log.Println("🚀 服务器启动在 http://localhost:5000")
 	r.Run("0.0.0.0:5000")
 }
