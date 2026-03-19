@@ -3,7 +3,7 @@ package database
 import (
 	"log"
 
-	"fifu.fun/test/models"
+	"fifu.fun/fifu-gateway/models"
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )

@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"fifu.fun/test/database"
-	"fifu.fun/test/models"
-	"fifu.fun/test/utils"
-	wa "fifu.fun/test/webauthn"
+	"fifu.fun/fifu-gateway/database"
+	"fifu.fun/fifu-gateway/models"
+	"fifu.fun/fifu-gateway/utils"
+	wa "fifu.fun/fifu-gateway/webauthn"
 	"github.com/gin-gonic/gin"
 )
 

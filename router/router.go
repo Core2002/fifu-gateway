@@ -4,9 +4,9 @@ import (
 	"log"
 	"net/http"
 
-	"fifu.fun/test/handlers"
-	"fifu.fun/test/middleware"
-	"fifu.fun/test/utils"
+	"fifu.fun/fifu-gateway/handlers"
+	"fifu.fun/fifu-gateway/middleware"
+	"fifu.fun/fifu-gateway/utils"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )

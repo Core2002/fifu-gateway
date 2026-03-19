@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"fifu.fun/test/utils"
+	"fifu.fun/fifu-gateway/utils"
 	"github.com/gin-gonic/gin"
 )
 

@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"fifu.fun/test/middleware"
-	"fifu.fun/test/utils"
+	"fifu.fun/fifu-gateway/middleware"
+	"fifu.fun/fifu-gateway/utils"
 	"github.com/gin-gonic/gin"
 )
 
