@@ -77,7 +77,8 @@ func Init() {
 	targetURL, _ := url.Parse("http://localhost:5100")
 	proxy := httputil.NewSingleHostReverseProxy(targetURL)
 	api := r.Group("/api")
-	api.Use(middleware.AuthMiddleware(tokenMaker))
+	api.Use(middleware.AuthMiddleware(tokenMaker)).
+		Use(middleware.RoleMiddleware("admin"))
 	api.Any("/*path", func(ctx *gin.Context) {
 		// 从上下文获取用户信息并注入请求头
 		if payload, exists := ctx.Get("authorization_payload"); exists {
