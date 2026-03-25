@@ -1,5 +1,5 @@
 # 第一阶段：构建阶段
-FROM 1ms.run/golang:1.25-alpine AS builder
+FROM docker.1ms.run/golang:1.25-alpine AS builder
 
 # 安装构建依赖
 RUN apk add --no-cache git gcc musl-dev sqlite-dev
