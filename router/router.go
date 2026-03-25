@@ -1,7 +1,9 @@
 package router
 
 import (
+	"embed"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -14,6 +16,9 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
+
+//go:embed public/*
+var staticFiles embed.FS
 
 // Init 初始化 Gin Web 框架，配置 CORS 和路由
 func Init() {
@@ -35,7 +40,10 @@ func Init() {
 		ctx.Redirect(302, "/app/")
 	})
 
-	r.Static("/app", "./public")
+	// 静态文件服务 - 使用嵌入的文件系统
+	staticSubFS, _ := fs.Sub(staticFiles, "public")
+	// 注册路由，传递嵌入的静态文件
+	r.StaticFS("/app", http.FS(staticSubFS))
 
 	r.GET("/ping", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{"message": "pong"})
