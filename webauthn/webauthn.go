@@ -23,6 +23,7 @@ func Init() {
 		RPDisplayName: "WebAuthn Demo",
 		RPID:          "localhost",
 		RPOrigins: []string{
+			"http://localhost:9000",
 			"http://localhost:5000",
 			"http://localhost:5173",
 		},
