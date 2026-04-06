@@ -11,7 +11,7 @@ RUN apk add --no-cache git gcc musl-dev sqlite-dev
 WORKDIR /build
 
 # 设置 Go 模块代理（国内加速）
-ENV GOPROXY=https://goproxy.cn,https://goproxy.io,https://mirrors.aliyun.com/goproxy/,direct
+ENV GOPROXY=https://goproxy.cn,direct
 ENV GOSUMDB=sum.golang.org
 
 # 复制依赖文件
