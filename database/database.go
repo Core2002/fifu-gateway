@@ -13,7 +13,7 @@ var DB *gorm.DB
 // Init 初始化 SQLite 数据库并自动迁移表结构
 func Init() {
 	var err error
-	DB, err = gorm.Open(sqlite.Open("webauthn.db"), &gorm.Config{})
+	DB, err = gorm.Open(sqlite.Open("data/webauthn.db"), &gorm.Config{})
 	if err != nil {
 		log.Fatal("failed to connect database:", err)
 	}
