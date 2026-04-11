@@ -21,10 +21,11 @@ type Credential = webauthn.Credential
 func Init() {
 	config := &webauthn.Config{
 		RPDisplayName: "FiFu WebAuthn",
-		RPID:          "10.0.3.201:5200",
+		RPID:          "10.0.3.201",
 		RPOrigins: []string{
 			"http://localhost:5200",
 			"http://localhost:5000",
+			"http://10.0.3.201:5200",
 			"https://10.0.3.201:5200",
 		},
 	}
