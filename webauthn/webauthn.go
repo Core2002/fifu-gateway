@@ -25,7 +25,7 @@ func Init() {
 		RPOrigins: []string{
 			"http://localhost:5200",
 			"http://localhost:5000",
-			"https://10.0.2.221:5200",
+			"https://10.0.3.201:5200",
 		},
 	}
 
