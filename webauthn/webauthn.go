@@ -20,8 +20,8 @@ type Credential = webauthn.Credential
 // Init 初始化 WebAuthn 配置
 func Init() {
 	config := &webauthn.Config{
-		RPDisplayName: "WebAuthn Demo",
-		RPID:          "localhost",
+		RPDisplayName: "FiFu WebAuthn",
+		RPID:          "10.0.3.201",
 		RPOrigins: []string{
 			"http://localhost:5200",
 			"http://localhost:5000",
