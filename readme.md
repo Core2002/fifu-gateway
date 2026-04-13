@@ -262,6 +262,8 @@ A: 检查 Token 是否过期，以及 Authorization header 格式是否正确
 
 MIT License
 
+Copyright (c) 2026 Core2002
+
 ## 贡献
 
 欢迎提交 Issue 和 Pull Request！
