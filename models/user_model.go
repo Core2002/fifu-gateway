@@ -1,6 +1,10 @@
 package models
 
-import "github.com/go-webauthn/webauthn/webauthn"
+import (
+	"encoding/binary"
+
+	"github.com/go-webauthn/webauthn/webauthn"
+)
 
 // User 用户结构体，实现 webauthn.Interface 接口
 type User struct {
@@ -10,9 +14,12 @@ type User struct {
 	Credentials []webauthn.Credential `gorm:"serializer:json"`
 }
 
-// WebAuthnID 返回用户的 ID 字节数组（使用用户名的字节作为唯一标识）
+// WebAuthnID 返回用户的 ID 字节数组（使用用户ID的字节作为唯一标识）
 func (u *User) WebAuthnID() []byte {
-	return []byte(u.Username)
+	// 使用用户ID作为WebAuthn标识，更稳定可靠
+	idBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(idBytes, uint64(u.ID))
+	return idBytes
 }
 
 // WebAuthnName 返回用户名

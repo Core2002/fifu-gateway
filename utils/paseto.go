@@ -78,8 +78,8 @@ func (maker *PasetoMaker) CreateToken(userID uint, username, role string, durati
 		// 使用私钥签名（v2.public）
 		token, err = maker.passeto.Sign(maker.privateKey, payloadBytes, nil)
 	} else {
-		// 使用堆成密钥加密（v2.local）
-		token, err = maker.passeto.Encrypt(maker.publicKey, payloadBytes, nil)
+		// 使用对称密钥加密（v2.local）
+		token, err = maker.passeto.Encrypt(maker.symmetricKey, payloadBytes, nil)
 	}
 	return token, err
 }
@@ -92,7 +92,7 @@ func (maker *PasetoMaker) VerifyToken(token string) (*TokenPayload, error) {
 		//使用公钥验证（v2.public）
 		err = maker.passeto.Verify(token, maker.publicKey, &payloadBytes, nil)
 	} else {
-		// 使用堆成密钥解密）—v2.local—
+		// 使用对称密钥解密（v2.local）
 		err = maker.passeto.Decrypt(token, maker.symmetricKey, &payloadBytes, nil)
 	}
 

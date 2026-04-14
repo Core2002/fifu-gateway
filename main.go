@@ -2,8 +2,10 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"fifu.fun/fifu-gateway/database"
+	"fifu.fun/fifu-gateway/handlers"
 	"fifu.fun/fifu-gateway/router"
 	"fifu.fun/fifu-gateway/webauthn"
 )
@@ -13,5 +15,19 @@ func main() {
 	log.Println("=== WebAuthn 服务启动 ===")
 	database.Init()
 	webauthn.Init()
+	
+	// 启动会话清理定时任务
+	go startSessionCleanup()
+	
 	router.Init()
+}
+
+// startSessionCleanup 启动会话清理定时任务
+func startSessionCleanup() {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+	
+	for range ticker.C {
+		handlers.CleanupExpiredSessions()
+	}
 }

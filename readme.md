@@ -14,6 +14,7 @@
 ## 技术栈
 
 ### 后端
+
 - **Go 1.25.4**: 主要开发语言
 - **Gin**: Web 框架
 - **GORM**: ORM 框架
@@ -22,12 +23,13 @@
 - **PASETO**: 安全令牌标准
 
 ### 前端
+
 - **原生 JavaScript**: 无框架依赖
 - **WebAuthn API**: 浏览器原生 WebAuthn 支持
 
 ## 项目结构
 
-```
+```bash
 fifu-gateway/
 ├── main.go              # 程序入口
 ├── database/            # 数据库初始化
@@ -44,7 +46,15 @@ fifu-gateway/
 │   └── public/          # 前端静态文件（嵌入）
 │       ├── index.html
 │       ├── main.js
+│       ├── webauthn-core.js
+│       ├── MODULES_README.md
+│       ├── REFACTORING_SUMMARY.md
 │       └── utils/
+│           ├── api.js
+│           ├── base64.js
+│           ├── index.js
+│           ├── token.js
+│           └── ui.js
 ├── utils/               # 工具函数
 │   └── paseto.go        # PASETO 令牌生成和验证
 └── webauthn/            # WebAuthn 封装
@@ -61,23 +71,26 @@ fifu-gateway/
 ### 安装与运行
 
 1. **克隆项目**
+
    ```bash
    git clone <repository-url>
    cd fifu-gateway
    ```
 
 2. **安装依赖**
+
    ```bash
    go mod download
    ```
 
 3. **运行服务**
+
    ```bash
    go run main.go
    ```
 
 4. **访问应用**
-   打开浏览器访问：http://localhost:5000
+   打开浏览器访问：<http://localhost:5000>
 
 ### 编译部署
 
@@ -94,7 +107,8 @@ go build -o fifu-gateway.exe
 ### WebAuthn 认证
 
 #### 1. 开始注册
-```
+
+```http
 POST /webauthn/register/start
 Content-Type: application/json
 
@@ -104,7 +118,8 @@ Content-Type: application/json
 ```
 
 #### 2. 完成注册
-```
+
+```http
 POST /webauthn/register/finish
 Content-Type: application/json
 
@@ -115,7 +130,8 @@ Content-Type: application/json
 ```
 
 #### 3. 开始登录
-```
+
+```http
 POST /webauthn/login/start
 Content-Type: application/json
 
@@ -125,7 +141,8 @@ Content-Type: application/json
 ```
 
 #### 4. 完成登录
-```
+
+```http
 POST /webauthn/login/finish
 Content-Type: application/json
 
@@ -138,13 +155,15 @@ Content-Type: application/json
 ### 受保护的路由
 
 #### 获取用户信息
-```
+
+```http
 GET /profile
 Authorization: Bearer <token>
 ```
 
 #### 管理员路由
-```
+
+```http
 GET /admin
 Authorization: Bearer <token>
 ```
@@ -152,11 +171,12 @@ Authorization: Bearer <token>
 ### API 网关代理
 
 所有 `/api/*` 路由会被代理到 `http://localhost:5100`，并在请求头中注入用户信息：
+
 - `X-User-ID`: 用户 ID
 - `X-Username`: 用户名
 - `X-User-Role`: 用户角色
 
-```
+```http
 /api/* (需要 admin 权限)
 Authorization: Bearer <token>
 ```
@@ -250,12 +270,15 @@ admin := r.Group("/").
 ## 常见问题
 
 ### Q: 浏览器提示不支持 WebAuthn
+
 A: 请确保使用现代浏览器（Chrome、Edge、Firefox、Safari 等）的最新版本
 
 ### Q: 注册失败
+
 A: 检查浏览器是否支持 WebAuthn，以及设备是否支持安全密钥
 
 ### Q: Token 验证失败
+
 A: 检查 Token 是否过期，以及 Authorization header 格式是否正确
 
 ## 许可证
@@ -267,4 +290,3 @@ Copyright (c) 2026 Core2002
 ## 贡献
 
 欢迎提交 Issue 和 Pull Request！
-

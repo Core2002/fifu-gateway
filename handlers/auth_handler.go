@@ -16,11 +16,70 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// SessionStore 会话存储结构，包含会话数据和过期时间
+type SessionStore struct {
+	Data       *wa.SessionData
+	ExpiryTime time.Time
+}
+
 // 防止重放攻击
 var (
-	sessions     = map[string]*wa.SessionData{}
+	sessions     = map[string]*SessionStore{}
 	sessionMutex sync.RWMutex
 )
+
+// 会话过期时间（10分钟）
+const sessionTimeout = 10 * time.Minute
+
+// saveSession 保存会话，设置过期时间
+func saveSession(username string, session *wa.SessionData) {
+	sessionMutex.Lock()
+	defer sessionMutex.Unlock()
+	
+	sessions[username] = &SessionStore{
+		Data:       session,
+		ExpiryTime: time.Now().Add(sessionTimeout),
+	}
+}
+
+// getSession 获取会话，检查是否过期
+func getSession(username string) (*wa.SessionData, bool) {
+	sessionMutex.RLock()
+	store, exists := sessions[username]
+	sessionMutex.RUnlock()
+
+	if !exists {
+		return nil, false
+	}
+
+	// 检查是否过期
+	if time.Now().After(store.ExpiryTime) {
+		sessionMutex.Lock()
+		delete(sessions, username)
+		sessionMutex.Unlock()
+		return nil, false
+	}
+
+	return store.Data, true
+}
+
+// CleanupExpiredSessions 清理过期会话（定期调用），导出以供外部调用
+func CleanupExpiredSessions() {
+	sessionMutex.Lock()
+	defer sessionMutex.Unlock()
+
+	now := time.Now()
+	count := 0
+	for username, store := range sessions {
+		if now.After(store.ExpiryTime) {
+			delete(sessions, username)
+			count++
+		}
+	}
+	if count > 0 {
+		log.Printf("🧹 清理了 %d 个过期会话", count)
+	}
+}
 
 // StartRequest 注册/登录请求结构体
 type StartRequest struct {
@@ -62,9 +121,7 @@ func RegisterStart(ctx *gin.Context) {
 	}
 
 	// 保存会话和用户信息
-	sessionMutex.Lock()
-	sessions[req.Username] = session
-	sessionMutex.Unlock()
+	saveSession(req.Username, session)
 
 	response := wa.ConvertCredentialCreation(creation, &user)
 
@@ -94,11 +151,12 @@ func RegisterFinish(ctx *gin.Context) {
 
 	log.Printf("📝 注册完成 - 用户名：%s", req.Username)
 
+	session, exists := getSession(req.Username)
+	// 使用后删除会话
 	sessionMutex.Lock()
-	session, exists := sessions[req.Username]
 	delete(sessions, req.Username)
 	sessionMutex.Unlock()
-
+	
 	if !exists {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "注册会话已过期"})
 		return
@@ -169,9 +227,8 @@ func LoginStart(ctx *gin.Context) {
 		return
 	}
 
-	sessionMutex.Lock()
-	sessions[req.Username] = session
-	sessionMutex.Unlock()
+	// 保存会话和用户信息
+	saveSession(req.Username, session)
 
 	response := wa.ConvertCredentialAssertion(assertion)
 
@@ -201,11 +258,12 @@ func (h *UserHandler) LoginFinish(ctx *gin.Context) {
 
 	log.Printf("🔐 登录完成 - 用户名：%s", req.Username)
 
+	session, exists := getSession(req.Username)
+	// 使用后删除会话
 	sessionMutex.Lock()
-	session, exists := sessions[req.Username]
 	delete(sessions, req.Username)
 	sessionMutex.Unlock()
-
+	
 	if !exists {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "登录会话已过期"})
 		return
