@@ -36,8 +36,8 @@ FROM docker.1ms.run/alpine:latest
 # 设置 Alpine APK 国内镜像源（阿里云）
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 
-# 安装运行时依赖（如果需要 SQLite）
-RUN apk --no-cache add ca-certificates tzdata
+# 安装运行时依赖
+RUN apk update && apk --no-cache add ca-certificates tzdata
 
 # 设置时区为中国标准时间
 ENV TZ=Asia/Shanghai
