@@ -33,8 +33,8 @@ RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build \
 # 第二阶段：运行阶段
 FROM docker.1ms.run/alpine:latest
 
-# 设置 Alpine APK 国内镜像源（阿里云）
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+# 使用中科大镜像源（如果需要国内加速）
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories || true
 
 # 安装运行时依赖
 RUN apk update && apk --no-cache add ca-certificates tzdata
