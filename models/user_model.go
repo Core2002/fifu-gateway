@@ -1,7 +1,8 @@
 package models
 
 import (
-	"encoding/binary"
+	"crypto/sha256"
+	"encoding/base64"
 
 	"github.com/go-webauthn/webauthn/webauthn"
 )
@@ -14,12 +15,18 @@ type User struct {
 	Credentials []webauthn.Credential `gorm:"serializer:json"`
 }
 
-// WebAuthnID 返回用户的 ID 字节数组（使用用户ID的字节作为唯一标识）
+// WebAuthnID 返回用户的 WebAuthn ID（使用 username 的稳定哈希）
+// 注意：必须与注册和登录时一致，使用 username 的哈希确保稳定性
 func (u *User) WebAuthnID() []byte {
-	// 使用用户ID作为WebAuthn标识，更稳定可靠
-	idBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(idBytes, uint64(u.ID))
-	return idBytes
+	// 使用 username 的 SHA256 哈希作为 WebAuthn ID
+	// 这样在注册时（ID=0）和登录时（ID已分配）都能得到相同的 ID
+	hash := sha256.Sum256([]byte(u.Username))
+	return hash[:]
+}
+
+// WebAuthnIDBase64 返回 base64 编码的 WebAuthn ID（用于调试）
+func (u *User) WebAuthnIDBase64() string {
+	return base64.RawURLEncoding.EncodeToString(u.WebAuthnID())
 }
 
 // WebAuthnName 返回用户名
