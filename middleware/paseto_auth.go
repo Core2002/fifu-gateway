@@ -49,6 +49,11 @@ func AuthMiddleware(tokenMaker *utils.PasetoMaker) gin.HandlerFunc {
 		}
 		// 将用户信息存入上下文
 		ctx.Set(AuthorizationPayloadKey, payload)
+
+		ctx.Request.Header.Set("X-User-ID", fmt.Sprintf("%d", payload.UserID))
+		ctx.Request.Header.Set("X-Username", payload.Username)
+		ctx.Request.Header.Set("X-User-Role", payload.Role)
+
 		ctx.Next()
 	}
 }
