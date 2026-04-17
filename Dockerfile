@@ -7,8 +7,8 @@ ARG ALPINE_IMAGE=alpine:latest
 # 第一阶段：构建阶段
 FROM ${GO_IMAGE} AS builder
 
-# 设置 Alpine APK 国内镜像源（阿里云）
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+# 使用中科大镜像源（如果需要国内加速）
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories || true
 
 # 安装构建依赖
 RUN apk add --no-cache git gcc musl-dev sqlite-dev
