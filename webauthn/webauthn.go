@@ -21,12 +21,11 @@ type Credential = webauthn.Credential
 func Init() {
 	config := &webauthn.Config{
 		RPDisplayName: "FiFu WebAuthn",
-		RPID:          "localhost",
+		RPID:          "tls.internal",
 		RPOrigins: []string{
 			"http://localhost:5200",
 			"http://localhost:5000",
-			"http://cat.fifu.fun:5200",
-			"https://cat.fifu.fun:5200",
+			"https://tls.internal",
 		},
 	}
 
@@ -50,8 +49,8 @@ func transportsToString(transports []protocol.AuthenticatorTransport) []string {
 // credentialDescriptor 转换凭证描述符为 SimpleWebAuthn 兼容格式
 func credentialDescriptor(cred protocol.CredentialDescriptor) map[string]interface{} {
 	m := map[string]interface{}{
-		"id":       base64.RawURLEncoding.EncodeToString(cred.CredentialID),
-		"type":     cred.Type,
+		"id":   base64.RawURLEncoding.EncodeToString(cred.CredentialID),
+		"type": cred.Type,
 	}
 	if len(cred.Transport) > 0 {
 		m["transports"] = transportsToString(cred.Transport)
@@ -143,7 +142,7 @@ func ConvertCredentialAssertion(assertion *protocol.CredentialAssertion) map[str
 
 	result := map[string]interface{}{
 		"challenge": challenge,
-		"timeout":    opts.Timeout,
+		"timeout":   opts.Timeout,
 	}
 
 	if opts.RelyingPartyID != "" {
