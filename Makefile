@@ -21,6 +21,8 @@ clean:
 	podman rm -f $(CONTAINER_NAME) || true
 	podman rmi -f $(IMAGE_NAME) || true
 
+# 若需添加管理员，进入容器操作数据库即可
+# podman exec -it -u root fifu-gateway /bin/sh
 run-container:
 	podman run -d -v $(VOLUME_NAME):/app/data --network=host --name $(CONTAINER_NAME) --replace $(IMAGE_NAME)
 
