@@ -2,11 +2,12 @@ package webauthn
 
 import (
 	"encoding/base64"
-	"io"
-	"log"
-
+	"fmt"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
+	"io"
+	"log"
+	"os"
 )
 
 var WA *webauthn.WebAuthn
@@ -19,13 +20,14 @@ type Credential = webauthn.Credential
 
 // Init 初始化 WebAuthn 配置
 func Init() {
+
 	config := &webauthn.Config{
-		RPDisplayName: "FiFu WebAuthn",
-		RPID:          "tls.internal",
+		RPDisplayName: os.Getenv("WEBAUTHN_PDisplayName"),
+		RPID:          os.Getenv("WEBAUTHN_ORIGIN"),
 		RPOrigins: []string{
 			"http://localhost:5200",
 			"http://localhost:5000",
-			"https://tls.internal",
+			fmt.Sprintf("https://%s", os.Getenv("WEBAUTHN_ORIGIN")),
 		},
 	}
 
