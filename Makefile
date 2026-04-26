@@ -15,7 +15,7 @@ build-image-cn:
 		-t $(IMAGE_NAME) --format docker .
 
 build-image:
-	podman build -t $(IMAGE_NAME) --build-arg APP_ENV=$(APP_ENV) --format docker .\
+	podman build -t $(IMAGE_NAME) --format docker .\
 
 clean:
 	podman stop $(CONTAINER_NAME) || true
