@@ -13,7 +13,6 @@ import (
 
 // main 程序入口函数，依次初始化数据库、WebAuthn 和 Web 服务器
 func main() {
-	godotenv.Load(".env")
 	envFile := ".env.development"
 	if os.Getenv("APP_ENV") == "production" {
 		envFile = ".env.production"
