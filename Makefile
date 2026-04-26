@@ -10,7 +10,7 @@ ALPINE_IMAGE_CN = docker.1ms.run/alpine:latest
 
 build-image-cn:
 	podman build \
-	 	--build-arg APP_ENV=$(APP_ENV) \
+	 	--build-arg BUILD_ENV=$(APP_ENV) \
 		--build-arg GO_IMAGE=$(GO_IMAGE_CN) \
 		--build-arg ALPINE_IMAGE=$(ALPINE_IMAGE_CN) \
 		-t $(IMAGE_NAME) --format docker .
