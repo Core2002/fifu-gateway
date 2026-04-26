@@ -57,7 +57,7 @@ RUN addgroup -g 1000 appuser && \
 WORKDIR /app
 
 # 从构建阶段复制可执行文件
-COPY --from=builder /build/fifu-gateway .
+COPY --from=builder /build/fifu-gateway /build/.env.* ./
 
 # 创建数据目录并设置权限
 RUN mkdir -p /app/data && \
