@@ -2,6 +2,7 @@ TARGET = fifu-gateway
 IMAGE_NAME = fifu-gateway
 CONTAINER_NAME = fifu-gateway
 VOLUME_NAME = fifu-gateway
+APP_ENV ?= development 
 
 # ========== 镜像源配置 ==========
 GO_IMAGE_CN = docker.1ms.run/golang:1.25-alpine
@@ -14,7 +15,7 @@ build-image-cn:
 		-t $(IMAGE_NAME) --format docker .
 
 build-image:
-	podman build -t $(IMAGE_NAME) --format docker .\
+	podman build -t $(IMAGE_NAME) --build-arg APP_ENV=$(APP_ENV) --format docker .\
 
 clean:
 	podman stop $(CONTAINER_NAME) || true
