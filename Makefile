@@ -10,7 +10,6 @@ ALPINE_IMAGE_CN = docker.1ms.run/alpine:latest
 
 build-image-cn:
 	podman build \
-	 	--build-arg BUILD_ENV=$(APP_ENV) \
 		--build-arg GO_IMAGE=$(GO_IMAGE_CN) \
 		--build-arg ALPINE_IMAGE=$(ALPINE_IMAGE_CN) \
 		-t $(IMAGE_NAME) --format docker .
@@ -26,6 +25,6 @@ clean:
 # 若需添加管理员，进入容器操作数据库即可
 # podman exec -it -u root fifu-gateway /bin/sh
 run-container:
-	podman run -d -v $(VOLUME_NAME):/app/data --network=host --name $(CONTAINER_NAME) --replace $(IMAGE_NAME)
+	podman run -d -e APP_ENV=$(APP_ENV) -v $(VOLUME_NAME):/app/data --network=host --name $(CONTAINER_NAME) --replace $(IMAGE_NAME)
 
 .PHONY: build-image build-image-cn clean run-container

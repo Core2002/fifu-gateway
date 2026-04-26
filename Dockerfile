@@ -1,7 +1,6 @@
 # ============================================
 # Global args
 # ============================================
-ARG BUILD_ENV=development
 ARG GO_IMAGE=golang:1.25-alpine
 ARG ALPINE_IMAGE=alpine:latest
 
@@ -71,7 +70,6 @@ EXPOSE 5000
 
 # 设置环境变量
 ENV GIN_MODE=release
-ENV APP_ENV=$BUILD_ENV
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
