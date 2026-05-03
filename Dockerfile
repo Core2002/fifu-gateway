@@ -73,7 +73,7 @@ ENV GIN_MODE=release
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:5000/ping || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:5000/health || exit 1
 
 # 启动应用
 CMD ["./fifu-gateway"]
