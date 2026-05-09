@@ -30,7 +30,7 @@ func Init() {
 	}
 
 	// 创建需要认证的路由组
-	authGroup := r.Group("/api").Use(middleware.AuthMiddleware(tokenMaker))
+	authGroup := r.Group("/api").Use(middleware.AuthMiddleware(tokenMaker)).Use(middleware.RoleMiddleware("admin"))
 
 	// 创建反向代理
 	backendURL, _ := url.Parse("http://localhost:5100")
