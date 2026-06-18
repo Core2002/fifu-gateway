@@ -105,8 +105,11 @@ func RegisterStart(ctx *gin.Context) {
 	var existingUser models.User
 	result := database.DB.Where("username = ?", req.Username).First(&existingUser)
 	if result.Error == nil {
-		ctx.JSON(http.StatusConflict, gin.H{"error": "用户名已存在"})
-		return
+		if len(existingUser.Credentials) > 0 {
+			ctx.JSON(http.StatusConflict, gin.H{"error": "用户名已存在"})
+			return
+		}
+		log.Printf("📝 用户 %s 已存在但未设置通行密钥，允许继续注册", req.Username)
 	}
 
 	// 使用用户名创建临时用户对象用于生成挑战
@@ -185,8 +188,29 @@ func RegisterFinish(ctx *gin.Context) {
 	// 验证通过后，创建真实用户并保存到数据库
 	user := models.User{
 		Username:    req.Username,
-		Credentials: []wa.Credential{*cred},
 	}
+
+	// 如果数据库中没有用户，第一个用户自动成为管理员
+	var userCount int64
+	database.DB.Model(&models.User{}).Count(&userCount)
+	if userCount == 0 {
+		user.Role = "admin"
+	}
+
+	// 检查用户是否已存在（管理员预先创建），更新凭证而非创建
+	var existingUser models.User
+	if err := database.DB.Where("username = ?", req.Username).First(&existingUser).Error; err == nil {
+		existingUser.Credentials = []wa.Credential{*cred}
+		if err := database.DB.Save(&existingUser).Error; err != nil {
+			log.Printf("❌ 保存用户凭证失败：%v", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "保存用户凭证失败：" + err.Error()})
+			return
+		}
+		ctx.JSON(http.StatusOK, gin.H{"status": "registered"})
+		return
+	}
+
+	user.Credentials = []wa.Credential{*cred}
 	if err := database.DB.Create(&user).Error; err != nil {
 		log.Printf("❌ 保存用户失败：%v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "保存用户失败：" + err.Error()})

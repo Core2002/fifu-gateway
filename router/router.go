@@ -64,6 +64,17 @@ func Init() {
 	// 需要认证的路由
 	userHandler := handlers.NewUserHandler(tokenMaker)
 
+	// 用户管理路由（管理员专用）- 必须放在 /api 代理之前
+	adminHandler := handlers.NewAdminHandler()
+	adminGroup := r.Group("/admin/users").Use(middleware.AuthMiddleware(tokenMaker)).Use(middleware.RoleMiddleware("admin"))
+	{
+		adminGroup.POST("", adminHandler.CreateUser)
+		adminGroup.GET("", adminHandler.ListUsers)
+		adminGroup.GET("/:id", adminHandler.GetUser)
+		adminGroup.PUT("/:id", adminHandler.UpdateUser)
+		adminGroup.DELETE("/:id", adminHandler.DeleteUser)
+	}
+
 	// WebAuthn 路由
 	r.POST("/webauthn/register/start", handlers.RegisterStart)
 	r.POST("/webauthn/register/finish", handlers.RegisterFinish)
